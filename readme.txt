@@ -5,7 +5,7 @@ Logs是一个写日志文件的工具类，采用单例模式
 //接口函数
 void setLogsDir(const QString &dirPath);//设置日志文件目录
 void rmLogsFile(int retainDays=0);//删除日志文件
-void writeLogs(const QString &title,const QString &content);//写日志
+void writeLogs(const QString &content,LogsLevel logsLevel=INFO_LEVEL);//写日志
 
 
 作者联系方式：@为-何-而来(新浪微博)

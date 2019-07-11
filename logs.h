@@ -1,5 +1,4 @@
 /*
- *@file:   logs.h
  *@author: 缪庆瑞
  *@date:   2019.7.10
  *@brief:  写日志文件的工具类,采用单例模式
@@ -11,10 +10,19 @@
 #define LOGS_H
 
 #include <QDir>
+#include <QMutex>
 
 class Logs
 {
 public:
+    //日志级别
+    enum LogsLevel
+    {
+        DEBUG_LEVEL=0,
+        INFO_LEVEL,
+        WARN_LEVEL,
+        ERROR_LEVEL,
+    };
     //单例模式
     static Logs* getInstance()
     {
@@ -24,12 +32,13 @@ public:
 
     void setLogsDir(const QString &dirPath);//设置日志文件目录
     void rmLogsFile(int retainDays=0);//删除日志文件
-    void writeLogs(const QString &title,const QString &content);//写日志
+    void writeLogs(const QString &content,LogsLevel logsLevel=INFO_LEVEL);//写日志
 
 private:
     Logs();//私有构造函数
 
     QDir logsDir;//日志文件目录
+    QMutex mutex;//互斥锁
 };
 
 #endif // LOGS_H

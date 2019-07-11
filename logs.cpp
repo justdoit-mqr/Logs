@@ -1,5 +1,4 @@
 /*
- *@file:   logs.cpp
  *@author: 缪庆瑞
  *@date:   2019.7.10
  *@brief:  写日志文件的工具类,采用单例模式
@@ -10,12 +9,16 @@
 #include "logs.h"
 #include <QFile>
 #include <QTextStream>
+#include <QMutexLocker>
 #include <QDate>
 #include <QTime>
 #include <QDebug>
+
+#define LOGS_DIR_PATH "./logs/"
+
 Logs::Logs()
 {
-    setLogsDir("./logs");
+    setLogsDir(LOGS_DIR_PATH);
 }
 /*
  *@brief:   设置日志文件目录
@@ -25,6 +28,7 @@ Logs::Logs()
  */
 void Logs::setLogsDir(const QString &dirPath)
 {
+    QMutexLocker locker(&mutex);//线程互斥，避免多线程同时操作文件
     logsDir.setPath(dirPath);
     //不存在则新建目录,使用mkpath递归创建(mkdir只能往下创建一级)。
     if(!logsDir.exists())
@@ -34,7 +38,7 @@ void Logs::setLogsDir(const QString &dirPath)
         logsDir.setPath("./");
         if(!logsDir.mkpath(dirPath))
         {
-            qDebug()<<"Logs::Failed to create dir:"<<dirPath;
+            qDebug()<<"(setLogsDir)Failed to create dir:"<<dirPath;
             //如果路径创建失败，则默认在程序当前路径下创建Logs目录作为日志目录
             logsDir.mkpath("./logs");
             logsDir.setPath("./logs");
@@ -51,10 +55,11 @@ void Logs::setLogsDir(const QString &dirPath)
  */
 void Logs::rmLogsFile(int retainDays)
 {
+    QMutexLocker locker(&mutex);//线程互斥，避免多线程同时操作文件
     //获取日志目录下所有的日志文件名，并按名称排序
     QStringList logsFileList =
             logsDir.entryList(QDir::NoDotAndDotDot | QDir::Files,QDir::Name);
-    //qDebug()<<"Logs::logsFileList:"<<logsFileList;
+    //qDebug()<<"(rmLogsFile)logsFileList:"<<logsFileList;
     int logsFileNum = logsFileList.size();
     if(logsFileNum<=retainDays)
     {
@@ -72,23 +77,44 @@ void Logs::rmLogsFile(int retainDays)
  *@brief:   写日志文件，filename以当前日期命名
  *@author:  缪庆瑞
  *@date:    2019.7.10
- *@param:   title:日志标题
  *@param:   content:日志内容
+ *@param:   logsLevel:日志级别，默认为普通info，只存文件不打印信息到终端
  */
-void Logs::writeLogs(const QString &title,const QString &content)
+void Logs::writeLogs(const QString &content, LogsLevel logsLevel)
 {
+    QString logsLevelStr;
+    switch (logsLevel) {
+    case DEBUG_LEVEL:
+        qDebug()<<content;//仅打印输出，不写日志
+        return;
+    case INFO_LEVEL:
+        logsLevelStr = "INFO";
+        break;
+    case WARN_LEVEL:
+        logsLevelStr = "WARN";
+        qDebug()<<content;//方便调试
+        break;
+    case ERROR_LEVEL:
+        logsLevelStr = "ERROR";
+        qDebug()<<content;//方便调试
+        break;
+    default:
+        qDebug()<<"(writeLogs)logsLevel is error.";
+        return;
+    }
+    QMutexLocker locker(&mutex);//线程互斥，避免多线程同时操作文件
     QDate currentDate = QDate::currentDate();
     QString fileName = QString(logsDir.path()+"/"+currentDate.toString("yyyy-MM-dd")+".log");
-    qDebug()<<"Logs::logsFileName:"<<fileName;
+    //qDebug()<<"(writeLogs)logsFileName:"<<fileName;
     QFile file(fileName);
     if(!file.open(QIODevice::Append))//以追加的方法写文件
     {
-        qDebug()<<"Logs::Failed to open file:"<<fileName;
+        qDebug()<<"(writeLogs)Failed to open file:"<<fileName;
         return;
     }
     QString currentTime = QTime::currentTime().toString("HH:mm:ss ");
     QTextStream out(&file);//创建文本流写文件
-    out<<currentTime<<title<<":"<<content<<"\r\n";//window下的换行即\r\n,linux为\n
+    out<<currentTime<<logsLevelStr<<":"<<content<<"\n";//window下的换行即\r\n,linux为\n
     file.close();
 }
 
