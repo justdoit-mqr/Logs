@@ -1,10 +1,8 @@
 /*
  *@author: 缪庆瑞
  *@date:   2019.7.10
- *@brief:  写日志文件的工具类,采用单例模式
- * 该类自动以当前日期作为日志文件名，格式形如“yyyy-MM-dd.log”，统一保存在指定的logsDir下。
- * 为了避免随着时间增长日志文件越来越多，可以在每次程序启动时调用rmLogsFile(int retainDays)，
- * 只保留最近几天的日志而删去其他无用的日志。
+ *@update:  2020.3.28
+ *@brief:  写日志文件的工具类
  */
 #include "logs.h"
 #include <QFile>
@@ -12,13 +10,35 @@
 #include <QMutexLocker>
 #include <QDate>
 #include <QTime>
-#include <QDebug>
 
 #define LOGS_DIR_PATH "./logs/"
 
+//初始化互斥锁(允许同一线程多次加锁)
+QMutex Logs::mutex(QMutex::Recursive);
+
+/*
+ *@brief:   私有构造，内部会设置默认的日志目录
+ *@author:  缪庆瑞
+ *@date:    2019.7.10
+ */
 Logs::Logs()
 {
     setLogsDir(LOGS_DIR_PATH);
+}
+/*
+ *@brief:   单例模式，获取实例对象(懒汉式,静态局部对象,自动完成资源释放)
+ *@author:  缪庆瑞
+ *@date:    2020.3.28
+ */
+Logs *Logs::getInstance()
+{
+    /* C++ 11标准规定了编译器要保证静态局部变量的线程安全性，即在一个线程开始静态局部对象的初始化后
+     * 到完成初始化前，其他线程执行到这个静态局部对象的初始化语句就会等待，直到该对象初始化完成。但
+     * 对于C++ 11之前的标准(比如我们这里的arm-fsl-linux-gnueabi-g++编译器用的是c99)还是需要手动加锁来
+     * 保证线程安全*/
+    QMutexLocker locker(&mutex);//线程互斥，避免多线程同时实例化单例对象
+    static Logs instance;//静态局部对象第一次调用该方法时才初始化且只实例化一次
+    return &instance;
 }
 /*
  *@brief:   设置日志文件目录
@@ -38,7 +58,7 @@ void Logs::setLogsDir(const QString &dirPath)
         logsDir.setPath("./");
         if(!logsDir.mkpath(dirPath))
         {
-            qDebug()<<"(setLogsDir)Failed to create dir:"<<dirPath;
+            qDebug()<<"setLogsDir():Failed to create dir "<<dirPath;
             //如果路径创建失败，则默认在程序当前路径下创建Logs目录作为日志目录
             logsDir.mkpath("./logs");
             logsDir.setPath("./logs");
@@ -58,8 +78,20 @@ void Logs::rmLogsFile(int retainDays)
     QMutexLocker locker(&mutex);//线程互斥，避免多线程同时操作文件
     //获取日志目录下所有的日志文件名，并按名称排序
     QStringList logsFileList =
-            logsDir.entryList(QDir::NoDotAndDotDot | QDir::Files,QDir::Name);
-    //qDebug()<<"(rmLogsFile)logsFileList:"<<logsFileList;
+            logsDir.entryList(QDir::Files,QDir::Name);
+    //qDebug()<<"rmLogsFile():logsFileList is"<<logsFileList;
+    //先删除大于当前日期(不符合常理)的日志文件
+    QString currentDateLog = QDate::currentDate().toString("yyyy-MM-dd'.log'");
+    for(int i=0;i<logsFileList.size();i++)
+    {
+        if(currentDateLog.compare(logsFileList.at(i))<0)
+        {
+            logsDir.remove(logsFileList.at(i));
+            logsFileList.removeAt(i);
+            i--;
+        }
+    }
+    //删除指定保留以外的日志文件
     int logsFileNum = logsFileList.size();
     if(logsFileNum<=retainDays)
     {
@@ -99,17 +131,17 @@ void Logs::writeLogs(const QString &content, LogsLevel logsLevel)
         qDebug()<<content;//方便调试
         break;
     default:
-        qDebug()<<"(writeLogs)logsLevel is error.";
+        qDebug()<<"writeLogs():logsLevel is error.";
         return;
     }
     QMutexLocker locker(&mutex);//线程互斥，避免多线程同时操作文件
     QDate currentDate = QDate::currentDate();
     QString fileName = QString(logsDir.path()+"/"+currentDate.toString("yyyy-MM-dd")+".log");
-    //qDebug()<<"(writeLogs)logsFileName:"<<fileName;
+    //qDebug()<<"writeLogs():logsFileName is"<<fileName;
     QFile file(fileName);
     if(!file.open(QIODevice::Append))//以追加的方法写文件
     {
-        qDebug()<<"(writeLogs)Failed to open file:"<<fileName;
+        qDebug()<<"writeLogs():Failed to open file "<<fileName;
         return;
     }
     QString currentTime = QTime::currentTime().toString("HH:mm:ss ");
@@ -117,5 +149,14 @@ void Logs::writeLogs(const QString &content, LogsLevel logsLevel)
     out<<currentTime<<logsLevelStr<<":"<<content<<"\n";//window下的换行即\r\n,linux为\n
     file.close();
 }
-
+/*
+ *@brief:   打印当前时间，主要为了测试某个函数的执行时间，不写文件
+ *@author:  缪庆瑞
+ *@date:    2019.10.17
+ *@param:   title:时间标题
+ */
+void Logs::printCurrentTime(const QString &title)
+{
+    qDebug()<<title<<QTime::currentTime().toString("mm:ss:zzz");
+}
 
