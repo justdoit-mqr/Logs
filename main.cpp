@@ -6,9 +6,10 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
     Logs *log = Logs::getInstance();
     log->rmLogsFile(7);
-    log->writeLogs("logs info test");
-    log->writeLogs("logs debug test",Logs::DEBUG_LEVEL);
-    log->writeLogs("logs warn test",Logs::WARN_LEVEL);
+    log->writeLogs(LOGS_CODE_POS,"logs debug test");
+    log->writeLogs(LOGS_CODE_POS,"logs info test",Logs::LEVEL_INFO);
+    log->writeLogs(LOGS_CODE_POS,"logs warn test",Logs::LEVEL_WARN);
+    log->writeLogs(LOGS_CODE_POS,"logs error test",Logs::LEVEL_ERROR);
 
     //return a.exec();
 }

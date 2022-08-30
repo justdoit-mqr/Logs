@@ -1,7 +1,7 @@
 /*
  *@author: 缪庆瑞
  *@date:   2019.7.10
- *@update:  2020.3.28
+ *@update:  2022.8.30
  *@brief:  写日志文件的工具类
  */
 #include "logs.h"
@@ -10,7 +10,9 @@
 #include <QMutexLocker>
 #include <QDate>
 #include <QTime>
+#include <QDebug>
 
+//默认在程序运行目录下创建一个logs目录
 #define LOGS_DIR_PATH "./logs/"
 
 //初始化互斥锁(允许同一线程多次加锁)
@@ -109,54 +111,54 @@ void Logs::rmLogsFile(int retainDays)
  *@brief:   写日志文件，filename以当前日期命名
  *@author:  缪庆瑞
  *@date:    2019.7.10
- *@param:   content:日志内容
- *@param:   logsLevel:日志级别，默认为普通info，只存文件不打印信息到终端
+ *@update:  2022.8.30
+ *@param:   logsCodePos:记录输出日志的代码位置，传递头文件中提供的宏(LOGS_CODE_POS)即可
+ *@param:   logsContent:日志内容
+ *@param:   logsLevel:日志级别，默认为Debug，仅调试输出
  */
-void Logs::writeLogs(const QString &content, LogsLevel logsLevel)
+void Logs::writeLogs(const QString &logsCodePos, const QString &logsContent, LogsLevel logsLevel)
 {
-    QString logsLevelStr;
+    QString currentTime = QTime::currentTime().toString("HH:mm:ss.zzz ");
+    QString logsStr,logsLevelStr;
     switch (logsLevel) {
-    case DEBUG_LEVEL:
-        qDebug()<<content;//仅打印输出，不写日志
-        return;
-    case INFO_LEVEL:
+    case LEVEL_DEBUG:
+        logsLevelStr = "DEBUG";
+        break;
+    case LEVEL_INFO:
         logsLevelStr = "INFO";
         break;
-    case WARN_LEVEL:
+    case LEVEL_WARN:
         logsLevelStr = "WARN";
-        qDebug()<<content;//方便调试
         break;
-    case ERROR_LEVEL:
+    case LEVEL_ERROR:
         logsLevelStr = "ERROR";
-        qDebug()<<content;//方便调试
         break;
     default:
         qDebug()<<"writeLogs():logsLevel is error.";
         return;
     }
-    QMutexLocker locker(&mutex);//线程互斥，避免多线程同时操作文件
-    QDate currentDate = QDate::currentDate();
-    QString fileName = QString(logsDir.path()+"/"+currentDate.toString("yyyy-MM-dd")+".log");
-    //qDebug()<<"writeLogs():logsFileName is"<<fileName;
-    QFile file(fileName);
-    if(!file.open(QIODevice::Append))//以追加的方法写文件
+    QTextStream strOut(&logsStr);
+    strOut<<currentTime<<logsLevelStr<<logsCodePos<<": "<<logsContent;
+    //非普通日志，都输出到终端
+    if(logsLevel != LEVEL_INFO)
     {
-        qDebug()<<"writeLogs():Failed to open file "<<fileName;
-        return;
+        qDebug()<<logsStr;
     }
-    QString currentTime = QTime::currentTime().toString("HH:mm:ss ");
-    QTextStream out(&file);//创建文本流写文件
-    out<<currentTime<<logsLevelStr<<":"<<content<<"\n";//window下的换行即\r\n,linux为\n
-    file.close();
+    //非调试输出，都写入文件
+    if(logsLevel != LEVEL_DEBUG)
+    {
+        QMutexLocker locker(&mutex);//线程互斥，避免多线程同时操作文件
+        QDate currentDate = QDate::currentDate();
+        QString fileName = QString(logsDir.path()+"/"+currentDate.toString("yyyy-MM-dd")+".log");
+        //qDebug()<<"writeLogs():logsFileName is"<<fileName;
+        QFile file(fileName);
+        if(!file.open(QIODevice::Append))//以追加的方法写文件
+        {
+            qDebug()<<"writeLogs():Failed to open file "<<fileName;
+            return;
+        }
+        QTextStream fileOut(&file);//创建文本流写文件
+        fileOut<<logsStr<<"\n";//window下的换行即\r\n,linux为\n
+        file.close();
+    }
 }
-/*
- *@brief:   打印当前时间，主要为了测试某个函数的执行时间，不写文件
- *@author:  缪庆瑞
- *@date:    2019.10.17
- *@param:   title:时间标题
- */
-void Logs::printCurrentTime(const QString &title)
-{
-    qDebug()<<title<<QTime::currentTime().toString("mm:ss:zzz");
-}
-
