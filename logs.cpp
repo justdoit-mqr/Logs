@@ -151,14 +151,26 @@ void Logs::writeLogs(const QString &logsCodePos, const QString &logsContent, Log
         QDate currentDate = QDate::currentDate();
         QString fileName = QString(logsDir.path()+"/"+currentDate.toString("yyyy-MM-dd")+".log");
         //qDebug()<<"writeLogs():logsFileName is"<<fileName;
-        QFile file(fileName);
-        if(!file.open(QIODevice::Append))//以追加的方法写文件
+        if(logsFile.fileName() != fileName)
         {
-            qDebug()<<"writeLogs():Failed to open file "<<fileName;
-            return;
+            if(logsFile.isOpen())
+            {
+                logsFileStream.flush();
+                logsFile.close();
+            }
+            logsFile.setFileName(fileName);
         }
-        QTextStream fileOut(&file);//创建文本流写文件
-        fileOut<<logsStr<<"\n";//window下的换行即\r\n,linux为\n
-        file.close();
+        if(!logsFile.isOpen())
+        {
+            if(!logsFile.open(QIODevice::Append))//以追加的方法写文件
+            {
+                qDebug()<<"writeLogs():Failed to open file "<<fileName;
+                return;
+            }
+            logsFileStream.setDevice(&logsFile);
+            logsFileStream.setCodec("UTF-8");
+        }
+        logsFileStream<<logsStr<<"\n";//window下的换行即\r\n,linux为\n
+        logsFileStream.flush();
     }
 }

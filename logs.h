@@ -7,12 +7,14 @@
  * 2.为了避免随着时间增长日志文件越来越多，可以在每次程序启动时调用rmLogsFile(int retainDays)，
  * 只保留最近几天的日志而删去其他无用的日志。
  * 3.该类根据日志级别决定写文件与否，同时也会根据日志级别选择将信息输出到终端方便调试。
- * 4.该类功能比较简单，写文件处理未做优化，仅适用于极小体量日志的记录，其他场景请使用成熟的log库
+ * 4.该类功能比较简单，适用于小体量日志的记录，其他复杂场景请使用成熟的log库
  */
 #ifndef LOGS_H
 #define LOGS_H
 
 #include <QDir>
+#include <QFile>
+#include <QTextStream>
 #include <QMutex>
 
 //记录log输出的代码位置，在调用writeLogs()接口时作为参数传递即可
@@ -44,6 +46,8 @@ private:
 
     static QMutex mutex;//互斥锁
     QDir logsDir;//日志文件目录
+    QFile logsFile;//日志文件
+    QTextStream logsFileStream;//写日志文件的流
 
 };
 
