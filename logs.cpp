@@ -28,6 +28,18 @@ Logs::Logs()
     setLogsDir(LOGS_DIR_PATH);
 }
 /*
+ *@brief:   析构函数，关闭打开的日志文件句柄
+ *@author:  缪庆瑞
+ *@date:    2022.10.24
+ */
+Logs::~Logs()
+{
+    if(logsFile.isOpen())
+    {
+        logsFile.close();
+    }
+}
+/*
  *@brief:   单例模式，获取实例对象(懒汉式,静态局部对象,自动完成资源释放)
  *@author:  缪庆瑞
  *@date:    2020.3.28

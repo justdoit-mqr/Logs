@@ -31,6 +31,8 @@ public:
         LEVEL_WARN,//警告信息，写文件同时输出到终端
         LEVEL_ERROR//错误信息，写文件同时输出到终端
     };
+    //析构函数
+    ~Logs();
     //单例模式
     static Logs* getInstance();
 
