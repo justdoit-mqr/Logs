@@ -40,6 +40,7 @@ public:
     void rmLogsFile(int retainDays=0);//删除日志文件
     void writeLogs(const QString &logsCodePos,const QString &logsContent,
                    LogsLevel logsLevel=LEVEL_DEBUG);//写日志
+    void closeLogsFile();//主动关闭日志文件
 
 private:
     Logs();//构造函数私有化

@@ -9,6 +9,7 @@ int main(int argc, char *argv[])
     log->writeLogs(LOGS_CODE_POS,"logs debug test");
     log->writeLogs(LOGS_CODE_POS,"logs info test",Logs::LEVEL_INFO);
     log->writeLogs(LOGS_CODE_POS,"logs warn test",Logs::LEVEL_WARN);
+    log->closeLogsFile();
     log->writeLogs(LOGS_CODE_POS,"logs error test",Logs::LEVEL_ERROR);
 
     //return a.exec();

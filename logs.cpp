@@ -34,10 +34,7 @@ Logs::Logs()
  */
 Logs::~Logs()
 {
-    if(logsFile.isOpen())
-    {
-        logsFile.close();
-    }
+    closeLogsFile();
 }
 /*
  *@brief:   单例模式，获取实例对象(懒汉式,静态局部对象,自动完成资源释放)
@@ -174,6 +171,7 @@ void Logs::writeLogs(const QString &logsCodePos, const QString &logsContent, Log
         }
         if(!logsFile.isOpen())
         {
+            //qDebug()<<"opening file:"<<fileName;
             if(!logsFile.open(QIODevice::Append))//以追加的方法写文件
             {
                 qDebug()<<"writeLogs():Failed to open file "<<fileName;
@@ -184,5 +182,20 @@ void Logs::writeLogs(const QString &logsCodePos, const QString &logsContent, Log
         }
         logsFileStream<<logsStr<<"\n";//window下的换行即\r\n,linux为\n
         logsFileStream.flush();
+    }
+}
+/*
+ *@brief:  主动关闭日志文件
+ *为了提高日志写入效率，日志文件会保持被打开的状态，这里提供一个主动关闭的接口，可在需要的情况下主动关闭
+ *@author:  缪庆瑞
+ *@date:   2022.12.06
+ */
+void Logs::closeLogsFile()
+{
+    QMutexLocker locker(&mutex);//线程互斥，避免多线程同时操作文件
+    if(logsFile.isOpen())
+    {
+        logsFileStream.flush();
+        logsFile.close();
     }
 }

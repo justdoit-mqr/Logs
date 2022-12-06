@@ -11,6 +11,7 @@ void setLogsDir(const QString &dirPath);//设置日志文件目录
 void rmLogsFile(int retainDays=0);//删除日志文件
 void writeLogs(const QString &logsCodePos,const QString &logsContent,
                LogsLevel logsLevel=LEVEL_DEBUG);//写日志
+void closeLogsFile();//主动关闭日志文件
 ```
 ## 作者联系方式:
 **邮箱:justdoit_mqr@163.com**  
